@@ -1,0 +1,268 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  avatar    String?
+  timezone  String   @default("America/Sao_Paulo")
+  currency  String   @default("BRL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  accounts              Account[]
+  transactions          Transaction[]
+  categories            Category[]
+  budgets               Budget[]
+  goals                 Goal[]
+  recurringTransactions RecurringTransaction[]
+
+  @@map("users")
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  INVESTMENT
+  CASH
+  DIGITAL_WALLET
+}
+
+model Account {
+  id             String      @id @default(cuid())
+  name           String
+  type           AccountType
+  balance        Decimal     @default(0) @db.Decimal(15, 2)
+  initialBalance Decimal     @default(0) @db.Decimal(15, 2)
+  currency       String      @default("BRL")
+  color          String?
+  icon           String?
+  isActive       Boolean     @default(true)
+  description    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relationships
+ fromTransactions          Transaction[]          @relation("FromAccount")
+  toTransactions            Transaction[]          @relation("ToAccount")
+  recurringFromTransactions RecurringTransaction[] @relation("RecurringFromAccount")
+  recurringToTransactions   RecurringTransaction[] @relation("RecurringToAccount")
+
+  @@map("accounts")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  description String
+  amount      Decimal         @db.Decimal(15, 2)
+  type        TransactionType
+  date        DateTime
+  notes       String?
+  location    String?
+  receipt     String? // File path/URL
+  tags        String[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  fromAccountId String?
+  fromAccount   Account? @relation("FromAccount", fields: [fromAccountId], references: [id], onDelete: SetNull)
+
+  toAccountId String?
+  toAccount   Account? @relation("ToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+
+  recurringTransactionId String?
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([type])
+  @@map("transactions")
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  type      CategoryType
+  color     String?
+  icon      String?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+
+  // Relationships
+  children             Category[]             @relation("CategoryHierarchy")
+  transactions         Transaction[]
+  budgets              Budget[]
+  RecurringTransaction RecurringTransaction[]
+
+  @@unique([userId, name, parentId])
+  @@map("categories")
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model Budget {
+  id        String       @id @default(cuid())
+  name      String
+  amount    Decimal      @db.Decimal(15, 2)
+  spent     Decimal      @default(0) @db.Decimal(15, 2)
+  period    BudgetPeriod
+  startDate DateTime
+  endDate   DateTime
+  alertAt   Int? // Alert when spent percentage reaches this value (0-100)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}
+
+enum GoalType {
+  SAVE_MONEY
+  REDUCE_EXPENSES
+  INCREASE_INCOME
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  type          GoalType
+  targetAmount  Decimal  @db.Decimal(15, 2)
+  currentAmount Decimal  @default(0) @db.Decimal(15, 2)
+  targetDate    DateTime
+  isCompleted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model RecurringTransaction {
+  id            String              @id @default(cuid())
+  description   String
+  amount        Decimal             @db.Decimal(15, 2)
+  type          TransactionType
+  frequency     RecurrenceFrequency
+  interval      Int                 @default(1) // Every X periods
+  startDate     DateTime
+  endDate       DateTime?
+  isActive      Boolean             @default(true)
+  lastExecuted  DateTime?
+  nextExecution DateTime
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Foreign Keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  fromAccountId String?
+  fromAccount   Account? @relation("RecurringFromAccount", fields: [fromAccountId], references: [id], onDelete: SetNull)
+
+  
+  toAccountId String?
+  toAccount   Account? @relation("RecurringToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+
+  // Relationships
+  transactions Transaction[]
+
+  @@map("recurring_transactions")
+}
+
+// Audit log for important actions
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String // CREATE, UPDATE, DELETE
+  entity    String // Transaction, Account, etc.
+  entityId  String
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+// For storing user sessions (optional - can use JWT only)
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
