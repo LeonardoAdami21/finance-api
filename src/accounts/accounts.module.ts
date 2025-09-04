@@ -9,5 +9,6 @@ import { UsersModule } from 'src/users/users.module';
   imports: [DatabaseModule, forwardRef(() => UsersModule)],
   controllers: [AccountsController],
   providers: [AccountsService, AccountRepository],
+  exports: [AccountsService],
 })
 export class AccountsModule {}

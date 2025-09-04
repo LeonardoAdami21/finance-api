@@ -9,5 +9,6 @@ import { CategoryRepository } from './repository/category.repository';
   imports: [DatabaseModule, forwardRef(() => UsersModule)],
   controllers: [CategoryController],
   providers: [CategoryService, CategoryRepository],
+  exports: [CategoryService],
 })
 export class CategoryModule {}
