@@ -21,6 +21,7 @@ async function bootstrap() {
     .setTitle('Finance API')
     .setDescription('Its a Finance API with NestJS')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
