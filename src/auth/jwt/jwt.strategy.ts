@@ -6,21 +6,19 @@ import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private prisma: DatabaseService,
-  ) {
+  constructor(private prisma: DatabaseService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET,
     });
   }
-  async validate(payload: { sub: string; email: string }) {
+  async validate(payload: { userId: string; email: string }) {
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: payload.userId },
     });
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('User unauthorized');
     }
     const { password, ...result } = user;
     return result;
