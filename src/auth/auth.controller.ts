@@ -7,10 +7,12 @@ import {
   Param,
   Delete,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -19,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { RegisterAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
+import { JwtAuthGuard } from './jwt/jwt-auth.guard';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -50,6 +53,8 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get user profile',
     description: 'Route to get user profile',
@@ -59,6 +64,6 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ description: 'Error getting user profile' })
   @Get('profile')
   getUserProfile(@Request() req: any) {
-    return this.authService.getUserProfile(req.userId);
+    return this.authService.getUserProfile(req.user.id);
   }
 }
