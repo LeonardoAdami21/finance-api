@@ -11,13 +11,13 @@ export class AccountRepository {
     private readonly usersService: UsersService,
   ) {}
 
-  async create(dto: CreateAccountDto, req: any) {
+  async create(dto: CreateAccountDto, userId: string) {
     try {
       const { name, balance, accountType } = dto;
       if (!name || !balance || !accountType) {
         throw new Error('All fields are required');
       }
-      const user = await this.usersService.getUserProfile(req);
+      const user = await this.usersService.getUserProfile(userId);
       if (!user) {
         throw new Error('User not found');
       }
@@ -83,7 +83,7 @@ export class AccountRepository {
         },
         data: {
           name: updateAccountDto.name,
-          balance: updateAccountDto.balance
+          balance: updateAccountDto.balance,
         },
       });
       return {

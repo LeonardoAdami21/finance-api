@@ -19,6 +19,10 @@ model User {
   categories   Category[]
   transactions Transaction[]
   budgets      Budget[]
+
+  RecurringTransaction RecurringTransaction[]
+
+  Goal Goal[]
 }
 
 model Account {
@@ -35,6 +39,7 @@ model Account {
   transactions Transaction[]
 
   @@unique([userId, name])
+  RecurringTransaction RecurringTransaction[]
 }
 
 model Category {
@@ -50,6 +55,7 @@ model Category {
   budgets      Budget[]
 
   @@unique([userId, name])
+  RecurringTransaction RecurringTransaction[]
 }
 
 model Transaction {
@@ -85,6 +91,49 @@ model Budget {
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+// Adicione estes dois modelos ao final de prisma/schema.prisma
+
+model Goal {
+  id            String   @id @default(uuid())
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  deadline      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecurringTransaction {
+  id          String          @id @default(uuid())
+  description String
+  amount      Float
+  type        TransactionType
+  frequency   Frequency
+  startDate   DateTime
+  nextDueDate DateTime // Essencial para o agendador saber quando executar
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
 }
 
 enum AccountType {
