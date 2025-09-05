@@ -32,5 +32,5 @@ export class CreateAccountDto {
     description: 'The type of the account',
   })
   @IsEnum(['checking', 'savings', 'credit-card', 'investing'])
-  accountType: AccountType;
+  accountType: 'checking' | 'savings' | 'credit-card' | 'investing';
 }
